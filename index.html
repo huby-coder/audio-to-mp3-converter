@@ -1,14 +1,11 @@
-<!-- 
-Lizenz: MIT (eigener Code) | lamejs unter LGPL-3.0
-https://github.com/zhuker/lamejs
--->
 <!DOCTYPE html>
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>Audio zu MP3 Konverter | M4A, MP3, WAV, OGG, FLAC, AAC, WEBM</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Audio zu MP3 Konverter - Fix</title>
     <style>
+        /* ... gleiches CSS wie bisher ... */
         * {
             box-sizing: border-box;
             font-family: system-ui, 'Segoe UI', 'Roboto', 'Helvetica Neue', sans-serif;
@@ -110,9 +107,6 @@ https://github.com/zhuker/lamejs
             font-size: 0.85rem;
             cursor: pointer;
             outline: none;
-        }
-        select:focus, input:focus {
-            border-color: #3b82f6;
         }
         .bitrate-value {
             font-weight: 700;
@@ -260,14 +254,11 @@ https://github.com/zhuker/lamejs
             <span class="format-badge">FLAC</span>
             <span class="format-badge">AAC</span>
             <span class="format-badge">WEBM</span>
-            <span class="format-badge">3GP</span>
-            <span class="format-badge">MP4</span>
         </div>
         <button type="button" id="fileSelectBtn" class="select-btn">📁 Datei auswählen</button>
         <input type="file" id="fileInput" accept=".m4a,.mp4,.mp3,.wav,.ogg,.flac,.aac,.webm,.3gp,audio/mpeg,audio/wav,audio/ogg,audio/flac,audio/aac,audio/webm,audio/mp4,audio/x-m4a" />
     </div>
 
-    <!-- Einstellungen -->
     <div class="settings-panel">
         <div class="setting-group">
             <label>🎚️ Bitrate:</label>
@@ -278,16 +269,16 @@ https://github.com/zhuker/lamejs
             <label>🔊 Kanäle:</label>
             <select id="channelMode">
                 <option value="auto">Automatisch (Original)</option>
-                <option value="mono" selected>Mono (kleinere Datei)</option>
-                <option value="stereo">Stereo (bessere Qualität)</option>
+                <option value="mono" selected>Mono</option>
+                <option value="stereo">Stereo</option>
             </select>
         </div>
         <div class="setting-group">
             <label>⚡ Modus:</label>
             <select id="qualityMode">
-                <option value="fast" selected>Schnell (schnellere Konvertierung)</option>
-                <option value="balanced">Ausgewogen</option>
-                <option value="best">Beste Qualität (langsamer)</option>
+                <option value="fast">Schnell</option>
+                <option value="balanced" selected>Ausgewogen</option>
+                <option value="best">Beste Qualität</option>
             </select>
         </div>
     </div>
@@ -295,6 +286,7 @@ https://github.com/zhuker/lamejs
     <div class="info-panel">
         <span>📄 <strong id="fileNameDisplay">Keine Datei</strong></span>
         <span>📊 <span id="sizeInfo">-</span></span>
+        <span>🎵 <span id="sampleRateInfo">-</span></span>
     </div>
 
     <div id="progressArea" style="display: none;">
@@ -313,462 +305,502 @@ https://github.com/zhuker/lamejs
     </div>
     
     <div id="errorMsg" style="display: none;" class="error-message"></div>
-    <div id="debugInfo" class="debug-info">🔍 Lade MP3-Encoder... bitte warten</div>
+    <div id="debugInfo" class="debug-info">🔍 Lade MP3-Encoder...</div>
     
     <div class="warning-note">
         ⚡ Konvertierung findet komplett im Browser statt – keine Daten werden hochgeladen.<br>
-        🚀 Empfehlung: 64 kbps Mono = kleine Dateien | 192+ kbps Stereo = hohe Qualität<br>
-        📝 Unterstützt: M4A, MP3, WAV, OGG, FLAC, AAC, WEBM, 3GP, MP4
+        🚀 Empfehlung: 64 kbps Mono = kleine Dateien | 192+ kbps Stereo = hohe Qualität
     </div>
 </div>
 
 <script>
-    (function() {
-        // DOM-Elemente
-        const dropzone = document.getElementById('dropzone');
-        const fileInput = document.getElementById('fileInput');
-        const fileSelectBtn = document.getElementById('fileSelectBtn');
-        const fileNameSpan = document.getElementById('fileNameDisplay');
-        const sizeInfoSpan = document.getElementById('sizeInfo');
-        const progressArea = document.getElementById('progressArea');
-        const progressFill = document.getElementById('progressFill');
-        const statusMsgDiv = document.getElementById('statusMsg');
-        const resultArea = document.getElementById('resultArea');
-        const resultFileNameSpan = document.getElementById('resultFileName');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const resetBtn = document.getElementById('resetBtn');
-        const errorMsgDiv = document.getElementById('errorMsg');
-        const debugInfo = document.getElementById('debugInfo');
-        
-        // Settings
-        const bitrateSlider = document.getElementById('bitrateSlider');
-        const bitrateValue = document.getElementById('bitrateValue');
-        const channelModeSelect = document.getElementById('channelMode');
-        const qualityModeSelect = document.getElementById('qualityMode');
+(function() {
+    // DOM Elemente
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileSelectBtn = document.getElementById('fileSelectBtn');
+    const fileNameSpan = document.getElementById('fileNameDisplay');
+    const sizeInfoSpan = document.getElementById('sizeInfo');
+    const sampleRateInfoSpan = document.getElementById('sampleRateInfo');
+    const progressArea = document.getElementById('progressArea');
+    const progressFill = document.getElementById('progressFill');
+    const statusMsgDiv = document.getElementById('statusMsg');
+    const resultArea = document.getElementById('resultArea');
+    const resultFileNameSpan = document.getElementById('resultFileName');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const resetBtn = document.getElementById('resetBtn');
+    const errorMsgDiv = document.getElementById('errorMsg');
+    const debugInfo = document.getElementById('debugInfo');
+    
+    // Settings
+    const bitrateSlider = document.getElementById('bitrateSlider');
+    const bitrateValue = document.getElementById('bitrateValue');
+    const channelModeSelect = document.getElementById('channelMode');
+    const qualityModeSelect = document.getElementById('qualityMode');
 
-        // State
-        let currentMp3Blob = null;
-        let originalFileName = "";
-        let isProcessing = false;
-        let audioCtx = null;
-        let Mp3Encoder = null;
+    let currentMp3Blob = null;
+    let originalFileName = "";
+    let isProcessing = false;
+    let audioCtx = null;
+    let Mp3Encoder = null;
 
-        // Unterstützte Formate
-        const allowedExtensions = ['m4a', 'mp4', 'mp3', 'wav', 'ogg', 'flac', 'aac', 'webm', '3gp'];
-        const allowedMimeTypes = [
-            'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/flac', 
-            'audio/aac', 'audio/webm', 'audio/mp4', 'audio/x-m4a'
-        ];
+    const allowedExtensions = ['m4a', 'mp4', 'mp3', 'wav', 'ogg', 'flac', 'aac', 'webm', '3gp'];
+    const allowedMimeTypes = [
+        'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/flac', 
+        'audio/aac', 'audio/webm', 'audio/mp4', 'audio/x-m4a'
+    ];
 
-        // Bitrate Slider Update
-        bitrateSlider.addEventListener('input', () => {
-            bitrateValue.textContent = bitrateSlider.value + ' kbps';
-        });
+    bitrateSlider.addEventListener('input', () => {
+        bitrateValue.textContent = bitrateSlider.value + ' kbps';
+    });
 
-        function logDebug(message) {
-            console.log("[DEBUG]", message);
-            const timestamp = new Date().toLocaleTimeString();
-            debugInfo.innerHTML = `🔍 [${timestamp}] ${message}<br>${debugInfo.innerHTML.split("<br>").slice(0, 8).join("<br>")}`;
-        }
+    function logDebug(message) {
+        console.log("[DEBUG]", message);
+        const timestamp = new Date().toLocaleTimeString();
+        debugInfo.innerHTML = `🔍 [${timestamp}] ${message}<br>${debugInfo.innerHTML.split("<br>").slice(0, 8).join("<br>")}`;
+    }
 
-        function showError(message) {
-            errorMsgDiv.textContent = "❌ " + message;
-            errorMsgDiv.style.display = 'block';
-            logDebug("FEHLER: " + message);
-            setTimeout(() => {
-                errorMsgDiv.style.display = 'none';
-            }, 6000);
-        }
+    function showError(message) {
+        errorMsgDiv.textContent = "❌ " + message;
+        errorMsgDiv.style.display = 'block';
+        logDebug("FEHLER: " + message);
+        setTimeout(() => {
+            errorMsgDiv.style.display = 'none';
+        }, 6000);
+    }
 
-        function getAudioContext() {
-            if (audioCtx && audioCtx.state !== 'closed') {
-                return audioCtx;
-            }
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function getAudioContext() {
+        if (audioCtx && audioCtx.state !== 'closed') {
             return audioCtx;
         }
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        return audioCtx;
+    }
 
-        function setProgress(percent, message) {
-            if (progressFill) progressFill.style.width = `${percent}%`;
-            if (statusMsgDiv) statusMsgDiv.textContent = message || `${Math.round(percent)}% ...`;
+    function setProgress(percent, message) {
+        if (progressFill) progressFill.style.width = `${percent}%`;
+        if (statusMsgDiv) statusMsgDiv.textContent = message || `${Math.round(percent)}% ...`;
+    }
+
+    // Resample Funktion - KERNEL!!
+    function resampleAudioBuffer(audioBuffer, targetSampleRate) {
+        const originalSampleRate = audioBuffer.sampleRate;
+        
+        if (originalSampleRate === targetSampleRate) {
+            logDebug(`Sample-Rate bereits ${targetSampleRate} Hz, kein Resampling nötig`);
+            return audioBuffer;
         }
+        
+        logDebug(`Resampling: ${originalSampleRate} Hz → ${targetSampleRate} Hz`);
+        
+        const duration = audioBuffer.duration;
+        const channels = audioBuffer.numberOfChannels;
+        const oldLength = audioBuffer.length;
+        const newLength = Math.floor(duration * targetSampleRate);
+        
+        const offlineCtx = new OfflineAudioContext(channels, newLength, targetSampleRate);
+        const source = offlineCtx.createBufferSource();
+        source.buffer = audioBuffer;
+        source.connect(offlineCtx.destination);
+        source.start();
+        
+        return offlineCtx.startRendering();
+    }
 
-        async function convertToMp3(arrayBuffer, bitrate, channelModePreference, qualityPreset) {
-            const ctx = getAudioContext();
-            
-            if (ctx.state === 'suspended') {
-                await ctx.resume();
-            }
-            
-            setProgress(5, "📀 Dekodiere Audio ...");
-            logDebug(`Starte Dekodierung, ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB, Bitrate: ${bitrate} kbps`);
-            
-            let audioBuffer;
+    function floatTo16BitPCM(float32Array) {
+        const int16Array = new Int16Array(float32Array.length);
+        for (let i = 0; i < float32Array.length; i++) {
+            let s = Math.max(-1, Math.min(1, float32Array[i]));
+            s = s < 0 ? s * 0x8000 : s * 0x7FFF;
+            int16Array[i] = Math.floor(s);
+        }
+        return int16Array;
+    }
+
+    async function convertToMp3(arrayBuffer, bitrate, channelModePreference, qualityPreset) {
+        const ctx = getAudioContext();
+        
+        if (ctx.state === 'suspended') {
+            await ctx.resume();
+        }
+        
+        setProgress(5, "📀 Dekodiere Audio ...");
+        logDebug(`Starte Dekodierung, ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB`);
+        
+        let audioBuffer;
+        try {
+            audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+        } catch (decodeError) {
+            throw new Error("Kann Datei nicht dekodieren. Ist es ein gültiges Audioformat?");
+        }
+        
+        if (!audioBuffer) {
+            throw new Error("AudioBuffer ist leer");
+        }
+        
+        logDebug(`Original: ${audioBuffer.numberOfChannels} Kanäle, ${audioBuffer.sampleRate} Hz, ${audioBuffer.duration.toFixed(2)} Sek.`);
+        
+        // 🔥 FIX: Immer auf 44100 Hz resamplen (Standard MP3 Sample-Rate)
+        const TARGET_SAMPLE_RATE = 44100;
+        let processedBuffer = audioBuffer;
+        
+        if (audioBuffer.sampleRate !== TARGET_SAMPLE_RATE) {
+            setProgress(10, "🔄 Passe Sample-Rate an (44100 Hz)...");
+            logDebug(`Resampling von ${audioBuffer.sampleRate} Hz auf ${TARGET_SAMPLE_RATE} Hz...`);
             try {
-                audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
-            } catch (decodeError) {
-                throw new Error("Kann Datei nicht dekodieren. Ist es ein gültiges Audioformat?");
+                processedBuffer = await resampleAudioBuffer(audioBuffer, TARGET_SAMPLE_RATE);
+                logDebug(`Resampling abgeschlossen. Neue Sample-Rate: ${processedBuffer.sampleRate} Hz`);
+            } catch (resampleError) {
+                logDebug(`Resampling fehlgeschlagen: ${resampleError.message}, verwende Original`);
+                processedBuffer = audioBuffer;
             }
-            
-            if (!audioBuffer) {
-                throw new Error("AudioBuffer ist leer");
-            }
-            
-            const originalChannels = audioBuffer.numberOfChannels;
-            const sampleRate = audioBuffer.sampleRate;
-            const samples = audioBuffer.length;
-            
-            logDebug(`Original: ${originalChannels} Kanäle, ${sampleRate} Hz, ${audioBuffer.duration.toFixed(2)} Sek.`);
-            
-            setProgress(20, "🎚️ Bearbeite Audio ...");
-            
-            // Kanal-Konfiguration basierend auf Benutzereinstellung
-            let targetChannels = originalChannels;
-            let leftChannel, rightChannel;
-            
-            if (channelModePreference === 'mono') {
-                targetChannels = 1;
-                if (originalChannels >= 2) {
-                    const left = audioBuffer.getChannelData(0);
-                    const right = audioBuffer.getChannelData(1);
-                    const mono = new Float32Array(samples);
-                    for (let i = 0; i < samples; i++) {
-                        mono[i] = (left[i] + right[i]) * 0.5;
-                    }
-                    leftChannel = mono;
-                    rightChannel = null;
-                } else {
-                    leftChannel = audioBuffer.getChannelData(0);
-                    rightChannel = null;
+        }
+        
+        const originalChannels = processedBuffer.numberOfChannels;
+        const sampleRate = processedBuffer.sampleRate;
+        const samples = processedBuffer.length;
+        
+        sampleRateInfoSpan.textContent = `${sampleRate} Hz`;
+        
+        setProgress(20, "🎚️ Bearbeite Audio ...");
+        
+        // Kanal-Konfiguration
+        let targetChannels = originalChannels;
+        let leftChannel, rightChannel;
+        
+        if (channelModePreference === 'mono') {
+            targetChannels = 1;
+            if (originalChannels >= 2) {
+                const left = processedBuffer.getChannelData(0);
+                const right = processedBuffer.getChannelData(1);
+                const mono = new Float32Array(samples);
+                for (let i = 0; i < samples; i++) {
+                    mono[i] = (left[i] + right[i]) * 0.5;
                 }
-            } else if (channelModePreference === 'stereo') {
-                targetChannels = 2;
-                if (originalChannels === 1) {
-                    const mono = audioBuffer.getChannelData(0);
-                    leftChannel = new Float32Array(samples);
-                    rightChannel = new Float32Array(samples);
-                    for (let i = 0; i < samples; i++) {
-                        leftChannel[i] = mono[i];
-                        rightChannel[i] = mono[i];
-                    }
-                } else {
-                    leftChannel = audioBuffer.getChannelData(0);
-                    rightChannel = audioBuffer.getChannelData(1);
+                leftChannel = mono;
+                rightChannel = null;
+            } else {
+                leftChannel = processedBuffer.getChannelData(0);
+                rightChannel = null;
+            }
+        } else if (channelModePreference === 'stereo') {
+            targetChannels = 2;
+            if (originalChannels === 1) {
+                const mono = processedBuffer.getChannelData(0);
+                leftChannel = new Float32Array(samples);
+                rightChannel = new Float32Array(samples);
+                for (let i = 0; i < samples; i++) {
+                    leftChannel[i] = mono[i];
+                    rightChannel[i] = mono[i];
                 }
             } else {
-                targetChannels = originalChannels;
-                leftChannel = audioBuffer.getChannelData(0);
-                rightChannel = originalChannels >= 2 ? audioBuffer.getChannelData(1) : null;
+                leftChannel = processedBuffer.getChannelData(0);
+                rightChannel = processedBuffer.getChannelData(1);
+            }
+        } else {
+            targetChannels = originalChannels;
+            leftChannel = processedBuffer.getChannelData(0);
+            rightChannel = originalChannels >= 2 ? processedBuffer.getChannelData(1) : null;
+        }
+        
+        const leftInt16 = floatTo16BitPCM(leftChannel);
+        const rightInt16 = rightChannel ? floatTo16BitPCM(rightChannel) : null;
+        
+        let quality;
+        switch(qualityPreset) {
+            case 'fast': quality = 7; break;
+            case 'balanced': quality = 5; break;
+            case 'best': quality = 2; break;
+            default: quality = 5;
+        }
+        
+        const encoder = new Mp3Encoder(targetChannels, sampleRate, parseInt(bitrate), quality);
+        
+        const mp3Chunks = [];
+        const sampleBlockSize = 1152;
+        let processedSamples = 0;
+        
+        setProgress(25, "🎛️ MP3 Encoding...");
+        
+        while (processedSamples < samples) {
+            const remaining = samples - processedSamples;
+            const chunkSize = Math.min(sampleBlockSize, remaining);
+            
+            let mp3buf;
+            if (targetChannels === 2 && rightInt16) {
+                const leftChunk = new Int16Array(chunkSize);
+                const rightChunk = new Int16Array(chunkSize);
+                for (let i = 0; i < chunkSize; i++) {
+                    leftChunk[i] = leftInt16[processedSamples + i];
+                    rightChunk[i] = rightInt16[processedSamples + i];
+                }
+                mp3buf = encoder.encodeBuffer(leftChunk, rightChunk);
+            } else {
+                const leftChunk = new Int16Array(chunkSize);
+                for (let i = 0; i < chunkSize; i++) {
+                    leftChunk[i] = leftInt16[processedSamples + i];
+                }
+                mp3buf = encoder.encodeBuffer(leftChunk);
             }
             
-            function floatTo16BitPCM(float32Array) {
-                const int16Array = new Int16Array(float32Array.length);
-                for (let i = 0; i < float32Array.length; i++) {
-                    let s = Math.max(-1, Math.min(1, float32Array[i]));
-                    s = s < 0 ? s * 0x8000 : s * 0x7FFF;
-                    int16Array[i] = Math.floor(s);
-                }
-                return int16Array;
-            }
-            
-            const leftInt16 = floatTo16BitPCM(leftChannel);
-            const rightInt16 = rightChannel ? floatTo16BitPCM(rightChannel) : null;
-            
-            let quality;
-            switch(qualityPreset) {
-                case 'fast': quality = 7; break;
-                case 'balanced': quality = 5; break;
-                case 'best': quality = 2; break;
-                default: quality = 7;
-            }
-            
-            const encoder = new Mp3Encoder(targetChannels, sampleRate, parseInt(bitrate), quality);
-            
-            const mp3Chunks = [];
-            const sampleBlockSize = 2304;
-            let processedSamples = 0;
-            
-            setProgress(25, "🎛️ MP3 Encoding...");
-            
-            while (processedSamples < samples) {
-                const remaining = samples - processedSamples;
-                const chunkSize = Math.min(sampleBlockSize, remaining);
-                
-                let mp3buf;
-                if (targetChannels === 2 && rightInt16) {
-                    const leftChunk = new Int16Array(chunkSize);
-                    const rightChunk = new Int16Array(chunkSize);
-                    for (let i = 0; i < chunkSize; i++) {
-                        leftChunk[i] = leftInt16[processedSamples + i];
-                        rightChunk[i] = rightInt16[processedSamples + i];
-                    }
-                    mp3buf = encoder.encodeBuffer(leftChunk, rightChunk);
-                } else {
-                    const leftChunk = new Int16Array(chunkSize);
-                    for (let i = 0; i < chunkSize; i++) {
-                        leftChunk[i] = leftInt16[processedSamples + i];
-                    }
-                    mp3buf = encoder.encodeBuffer(leftChunk);
-                }
-                
-                if (mp3buf && mp3buf.length > 0) {
-                    mp3Chunks.push(new Int8Array(mp3buf));
-                }
-                
-                processedSamples += chunkSize;
-                const percent = 25 + Math.floor((processedSamples / samples) * 70);
-                if (processedSamples % (sampleBlockSize * 10) === 0) {
-                    setProgress(percent, `🔄 Encoding: ${Math.round((processedSamples / samples) * 100)}%`);
-                    await new Promise(resolve => setTimeout(resolve, 0));
-                }
-            }
-            
-            setProgress(95, "📦 Finalisiere MP3 ...");
-            
-            const mp3buf = encoder.flush();
             if (mp3buf && mp3buf.length > 0) {
                 mp3Chunks.push(new Int8Array(mp3buf));
             }
             
-            if (mp3Chunks.length === 0) {
-                throw new Error("Keine MP3-Daten erzeugt");
-            }
-            
-            const totalLength = mp3Chunks.reduce((sum, chunk) => sum + chunk.length, 0);
-            const finalMp3 = new Uint8Array(totalLength);
-            let offset = 0;
-            for (const chunk of mp3Chunks) {
-                finalMp3.set(chunk, offset);
-                offset += chunk.length;
-            }
-            
-            const mp3Blob = new Blob([finalMp3], { type: 'audio/mpeg' });
-            setProgress(100, "✅ Fertig!");
-            logDebug(`MP3 erstellt: ${(mp3Blob.size / 1024).toFixed(1)} KB (${targetChannels} Kanäle, ${bitrate} kbps)`);
-            return mp3Blob;
-        }
-        
-        async function handleFile(file) {
-            if (!file) {
-                showError("Keine Datei ausgewählt");
-                return;
-            }
-            
-            logDebug(`Datei: ${file.name}, Typ: ${file.type}, Größe: ${(file.size / 1024).toFixed(1)} KB`);
-            
-            if (isProcessing) {
-                showError("Konvertierung läuft bereits, bitte warten.");
-                return;
-            }
-            
-            if (!Mp3Encoder) {
-                showError("MP3-Encoder wird noch geladen, bitte warten...");
-                return;
-            }
-            
-            const fileName = file.name;
-            const fileExt = fileName.split('.').pop().toLowerCase();
-            
-            // Format prüfen
-            const isAllowedExt = allowedExtensions.includes(fileExt);
-            const isAllowedMime = allowedMimeTypes.some(mime => file.type.includes(mime));
-            
-            if (!isAllowedExt && !isAllowedMime) {
-                showError(`Format nicht unterstützt. Erlaubte Formate: ${allowedExtensions.join(', ')}. Erhalten: ${fileExt || file.type}`);
-                return;
-            }
-            
-            // UI zurücksetzen
-            currentMp3Blob = null;
-            originalFileName = fileName.replace(/\.(m4a|mp4|mp3|wav|ogg|flac|aac|webm|3gp)$/i, '');
-            fileNameSpan.textContent = fileName.length > 35 ? fileName.substring(0, 32) + "..." : fileName;
-            sizeInfoSpan.textContent = `${(file.size / 1024).toFixed(1)} KB`;
-            
-            progressArea.style.display = 'block';
-            resultArea.style.display = 'none';
-            errorMsgDiv.style.display = 'none';
-            setProgress(0, "📂 Lade Datei ...");
-            isProcessing = true;
-            
-            const bitrate = parseInt(bitrateSlider.value);
-            const channelMode = channelModeSelect.value;
-            const qualityMode = qualityModeSelect.value;
-            
-            try {
-                const arrayBuffer = await file.arrayBuffer();
-                logDebug(`Gelesen: ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB`);
-                
-                if (arrayBuffer.byteLength === 0) {
-                    throw new Error("Die Datei ist leer");
-                }
-                
-                const mp3Blob = await convertToMp3(arrayBuffer, bitrate, channelMode, qualityMode);
-                currentMp3Blob = mp3Blob;
-                
-                progressArea.style.display = 'none';
-                const baseName = originalFileName.length > 22 ? originalFileName.substring(0, 19) + "..." : originalFileName;
-                const compression = ((mp3Blob.size / file.size) * 100).toFixed(0);
-                const modeText = channelMode === 'mono' ? 'Mono' : (channelMode === 'stereo' ? 'Stereo' : 'Auto');
-                resultFileNameSpan.textContent = `${baseName}.mp3 | ${(mp3Blob.size / 1024).toFixed(1)} KB (${compression}% | ${bitrate}kbps ${modeText})`;
-                resultArea.style.display = 'flex';
-                isProcessing = false;
-                logDebug(`✅ Konvertierung abgeschlossen! Komprimierung: ${compression}%`);
-                
-            } catch (err) {
-                console.error("Konvertierungsfehler:", err);
-                showError(err.message || "Konvertierung fehlgeschlagen");
-                statusMsgDiv.textContent = `❌ ${err.message || "Fehler"}`;
-                isProcessing = false;
-                
-                setTimeout(() => {
-                    if (progressArea.style.display !== 'none') {
-                        progressArea.style.display = 'none';
-                    }
-                }, 4000);
+            processedSamples += chunkSize;
+            const percent = 25 + Math.floor((processedSamples / samples) * 70);
+            if (processedSamples % (sampleBlockSize * 20) === 0) {
+                setProgress(percent, `🔄 Encoding: ${Math.round((processedSamples / samples) * 100)}%`);
+                await new Promise(resolve => setTimeout(resolve, 0));
             }
         }
         
-        function resetUI() {
-            currentMp3Blob = null;
+        setProgress(95, "📦 Finalisiere MP3 ...");
+        
+        const mp3buf = encoder.flush();
+        if (mp3buf && mp3buf.length > 0) {
+            mp3Chunks.push(new Int8Array(mp3buf));
+        }
+        
+        if (mp3Chunks.length === 0) {
+            throw new Error("Keine MP3-Daten erzeugt");
+        }
+        
+        const totalLength = mp3Chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+        const finalMp3 = new Uint8Array(totalLength);
+        let offset = 0;
+        for (const chunk of mp3Chunks) {
+            finalMp3.set(chunk, offset);
+            offset += chunk.length;
+        }
+        
+        const mp3Blob = new Blob([finalMp3], { type: 'audio/mpeg' });
+        setProgress(100, "✅ Fertig!");
+        logDebug(`MP3 erstellt: ${(mp3Blob.size / 1024).toFixed(1)} KB, ${targetChannels} Kanäle, ${sampleRate} Hz, ${bitrate} kbps`);
+        return mp3Blob;
+    }
+    
+    async function handleFile(file) {
+        if (!file) {
+            showError("Keine Datei ausgewählt");
+            return;
+        }
+        
+        logDebug(`Datei: ${file.name}, Typ: ${file.type}, Größe: ${(file.size / 1024).toFixed(1)} KB`);
+        
+        if (isProcessing) {
+            showError("Konvertierung läuft bereits, bitte warten.");
+            return;
+        }
+        
+        if (!Mp3Encoder) {
+            showError("MP3-Encoder wird noch geladen, bitte warten...");
+            return;
+        }
+        
+        const fileName = file.name;
+        const fileExt = fileName.split('.').pop().toLowerCase();
+        
+        const isAllowedExt = allowedExtensions.includes(fileExt);
+        const isAllowedMime = allowedMimeTypes.some(mime => file.type.includes(mime));
+        
+        if (!isAllowedExt && !isAllowedMime) {
+            showError(`Format nicht unterstützt. Erlaubte Formate: ${allowedExtensions.join(', ')}`);
+            return;
+        }
+        
+        currentMp3Blob = null;
+        originalFileName = fileName.replace(/\.(m4a|mp4|mp3|wav|ogg|flac|aac|webm|3gp)$/i, '');
+        fileNameSpan.textContent = fileName.length > 35 ? fileName.substring(0, 32) + "..." : fileName;
+        sizeInfoSpan.textContent = `${(file.size / 1024).toFixed(1)} KB`;
+        sampleRateInfoSpan.textContent = "...";
+        
+        progressArea.style.display = 'block';
+        resultArea.style.display = 'none';
+        errorMsgDiv.style.display = 'none';
+        setProgress(0, "📂 Lade Datei ...");
+        isProcessing = true;
+        
+        const bitrate = parseInt(bitrateSlider.value);
+        const channelMode = channelModeSelect.value;
+        const qualityMode = qualityModeSelect.value;
+        
+        try {
+            const arrayBuffer = await file.arrayBuffer();
+            logDebug(`Gelesen: ${(arrayBuffer.byteLength / 1024).toFixed(1)} KB`);
+            
+            if (arrayBuffer.byteLength === 0) {
+                throw new Error("Die Datei ist leer");
+            }
+            
+            const mp3Blob = await convertToMp3(arrayBuffer, bitrate, channelMode, qualityMode);
+            currentMp3Blob = mp3Blob;
+            
             progressArea.style.display = 'none';
-            resultArea.style.display = 'none';
-            fileNameSpan.textContent = "Keine Datei";
-            sizeInfoSpan.textContent = "-";
-            originalFileName = "";
+            const baseName = originalFileName.length > 22 ? originalFileName.substring(0, 19) + "..." : originalFileName;
+            const compression = ((mp3Blob.size / file.size) * 100).toFixed(0);
+            const modeText = channelMode === 'mono' ? 'Mono' : (channelMode === 'stereo' ? 'Stereo' : 'Auto');
+            resultFileNameSpan.textContent = `${baseName}.mp3 | ${(mp3Blob.size / 1024).toFixed(1)} KB (${compression}% | ${bitrate}kbps ${modeText})`;
+            resultArea.style.display = 'flex';
             isProcessing = false;
-            errorMsgDiv.style.display = 'none';
-            logDebug("UI zurückgesetzt");
-            if (audioCtx && audioCtx.state !== 'closed') {
-                audioCtx.close().catch(e => console.warn);
-                audioCtx = null;
-            }
-        }
-        
-        function downloadMp3() {
-            if (!currentMp3Blob) {
-                showError("Keine MP3 verfügbar. Bitte zuerst eine Datei konvertieren.");
-                return;
-            }
-            const bitrate = bitrateSlider.value;
-            const channelMode = channelModeSelect.value;
-            const modeLabel = channelMode === 'mono' ? 'mono' : (channelMode === 'stereo' ? 'stereo' : 'auto');
-            const downloadName = `${originalFileName || "audio"}_${bitrate}kbps_${modeLabel}.mp3`;
-            const url = URL.createObjectURL(currentMp3Blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = downloadName;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            logDebug(`Download: ${downloadName}`);
-        }
-        
-        function openFileDialog() {
-            if (isProcessing) {
-                showError("Konvertierung läuft, bitte warten.");
-                return;
-            }
-            if (!Mp3Encoder) {
-                showError("MP3-Encoder wird noch geladen, bitte warten...");
-                return;
-            }
-            fileInput.click();
-        }
-        
-        function setupEventListeners() {
-            fileSelectBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                openFileDialog();
-            });
+            logDebug(`✅ Konvertierung abgeschlossen! Komprimierung: ${compression}%`);
             
-            dropzone.addEventListener('click', (e) => {
-                if (e.target === fileSelectBtn || fileSelectBtn.contains(e.target)) return;
-                openFileDialog();
-            });
+        } catch (err) {
+            console.error("Konvertierungsfehler:", err);
+            showError(err.message || "Konvertierung fehlgeschlagen");
+            statusMsgDiv.textContent = `❌ ${err.message || "Fehler"}`;
+            isProcessing = false;
             
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files && e.target.files.length > 0) {
-                    handleFile(e.target.files[0]);
+            setTimeout(() => {
+                if (progressArea.style.display !== 'none') {
+                    progressArea.style.display = 'none';
                 }
-                fileInput.value = '';
-            });
-            
-            dropzone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropzone.classList.add('drag-over');
-            });
-            
-            dropzone.addEventListener('dragleave', () => {
-                dropzone.classList.remove('drag-over');
-            });
-            
-            dropzone.addEventListener('drop', async (e) => {
-                e.preventDefault();
-                dropzone.classList.remove('drag-over');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) {
-                    const file = files[0];
-                    const ext = file.name.split('.').pop().toLowerCase();
-                    if (allowedExtensions.includes(ext) || allowedMimeTypes.some(mime => file.type.includes(mime))) {
-                        await handleFile(file);
-                    } else {
-                        showError(`Format nicht unterstützt. Erlaubt: ${allowedExtensions.join(', ')}`);
-                    }
-                }
-            });
-            
-            downloadBtn.addEventListener('click', downloadMp3);
-            resetBtn.addEventListener('click', resetUI);
+            }, 4000);
         }
+    }
+    
+    function resetUI() {
+        currentMp3Blob = null;
+        progressArea.style.display = 'none';
+        resultArea.style.display = 'none';
+        fileNameSpan.textContent = "Keine Datei";
+        sizeInfoSpan.textContent = "-";
+        sampleRateInfoSpan.textContent = "-";
+        originalFileName = "";
+        isProcessing = false;
+        errorMsgDiv.style.display = 'none';
+        logDebug("UI zurückgesetzt");
+        if (audioCtx && audioCtx.state !== 'closed') {
+            audioCtx.close().catch(e => console.warn);
+            audioCtx = null;
+        }
+    }
+    
+    function downloadMp3() {
+        if (!currentMp3Blob) {
+            showError("Keine MP3 verfügbar. Bitte zuerst eine Datei konvertieren.");
+            return;
+        }
+        const bitrate = bitrateSlider.value;
+        const channelMode = channelModeSelect.value;
+        const modeLabel = channelMode === 'mono' ? 'mono' : (channelMode === 'stereo' ? 'stereo' : 'auto');
+        const downloadName = `${originalFileName || "audio"}_${bitrate}kbps_${modeLabel}.mp3`;
+        const url = URL.createObjectURL(currentMp3Blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = downloadName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        logDebug(`Download: ${downloadName}`);
+    }
+    
+    function openFileDialog() {
+        if (isProcessing) {
+            showError("Konvertierung läuft, bitte warten.");
+            return;
+        }
+        if (!Mp3Encoder) {
+            showError("MP3-Encoder wird noch geladen, bitte warten...");
+            return;
+        }
+        fileInput.click();
+    }
+    
+    function setupEventListeners() {
+        fileSelectBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            openFileDialog();
+        });
         
-        function loadLameJS() {
-            logDebug("Lade lamejs Bibliothek...");
-            
-            const script = document.createElement('script');
-            script.src = 'https://unpkg.com/lamejs@1.2.1/lame.min.js';
-            script.onload = function() {
+        dropzone.addEventListener('click', (e) => {
+            if (e.target === fileSelectBtn || fileSelectBtn.contains(e.target)) return;
+            openFileDialog();
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files && e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+            fileInput.value = '';
+        });
+        
+        dropzone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropzone.classList.add('drag-over');
+        });
+        
+        dropzone.addEventListener('dragleave', () => {
+            dropzone.classList.remove('drag-over');
+        });
+        
+        dropzone.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dropzone.classList.remove('drag-over');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                const file = files[0];
+                const ext = file.name.split('.').pop().toLowerCase();
+                if (allowedExtensions.includes(ext) || allowedMimeTypes.some(mime => file.type.includes(mime))) {
+                    await handleFile(file);
+                } else {
+                    showError(`Format nicht unterstützt. Erlaubt: ${allowedExtensions.join(', ')}`);
+                }
+            }
+        });
+        
+        downloadBtn.addEventListener('click', downloadMp3);
+        resetBtn.addEventListener('click', resetUI);
+    }
+    
+    function loadLameJS() {
+        logDebug("Lade lamejs Bibliothek...");
+        
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/lamejs@1.2.1/lame.min.js';
+        script.onload = function() {
+            if (window.lamejs && window.lamejs.Mp3Encoder) {
+                Mp3Encoder = window.lamejs.Mp3Encoder;
+                logDebug("Mp3Encoder erfolgreich geladen!");
+                setupEventListeners();
+                debugInfo.innerHTML = "✅ MP3-Encoder bereit! (Sample-Rate Fix aktiv: 44100 Hz)<br>" + debugInfo.innerHTML;
+            } else if (window.lamejs && window.lamejs.Encoder) {
+                Mp3Encoder = window.lamejs.Encoder;
+                logDebug("Mp3Encoder (Encoder) geladen!");
+                setupEventListeners();
+                debugInfo.innerHTML = "✅ MP3-Encoder bereit! (Sample-Rate Fix aktiv)<br>" + debugInfo.innerHTML;
+            } else {
+                showError("MP3-Encoder konnte nicht initialisiert werden.");
+            }
+        };
+        script.onerror = function() {
+            logDebug("Fehler, versuche Fallback...");
+            const script2 = document.createElement('script');
+            script2.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
+            script2.onload = function() {
                 if (window.lamejs && window.lamejs.Mp3Encoder) {
                     Mp3Encoder = window.lamejs.Mp3Encoder;
-                    logDebug("Mp3Encoder erfolgreich geladen!");
-                    setupEventListeners();
-                    debugInfo.innerHTML = "✅ MP3-Encoder bereit! Unterstützte Formate: M4A, MP3, WAV, OGG, FLAC, AAC, WEBM, 3GP, MP4<br>" + debugInfo.innerHTML;
-                } else if (window.lamejs && window.lamejs.Encoder) {
-                    Mp3Encoder = window.lamejs.Encoder;
-                    logDebug("Mp3Encoder (Encoder) geladen!");
+                    logDebug("Mp3Encoder von jsdelivr geladen!");
                     setupEventListeners();
                     debugInfo.innerHTML = "✅ MP3-Encoder bereit!<br>" + debugInfo.innerHTML;
                 } else {
-                    showError("MP3-Encoder konnte nicht initialisiert werden.");
+                    showError("MP3-Encoder konnte nicht geladen werden.");
                 }
             };
-            script.onerror = function() {
-                logDebug("Fehler, versuche Fallback...");
-                const script2 = document.createElement('script');
-                script2.src = 'https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js';
-                script2.onload = function() {
-                    if (window.lamejs && window.lamejs.Mp3Encoder) {
-                        Mp3Encoder = window.lamejs.Mp3Encoder;
-                        logDebug("Mp3Encoder von jsdelivr geladen!");
-                        setupEventListeners();
-                        debugInfo.innerHTML = "✅ MP3-Encoder bereit!<br>" + debugInfo.innerHTML;
-                    } else {
-                        showError("MP3-Encoder konnte nicht geladen werden.");
-                    }
-                };
-                script2.onerror = function() {
-                    showError("MP3-Encoder konnte nicht geladen werden. Bitte Internetverbindung prüfen.");
-                };
-                document.head.appendChild(script2);
+            script2.onerror = function() {
+                showError("MP3-Encoder konnte nicht geladen werden. Bitte Internetverbindung prüfen.");
             };
-            document.head.appendChild(script);
-        }
-        
-        window.addEventListener('DOMContentLoaded', () => {
-            logDebug("DOM geladen, starte App");
-            loadLameJS();
-        });
-    })();
+            document.head.appendChild(script2);
+        };
+        document.head.appendChild(script);
+    }
+    
+    window.addEventListener('DOMContentLoaded', () => {
+        logDebug("DOM geladen, starte App");
+        loadLameJS();
+    });
+})();
 </script>
 </body>
 </html>
