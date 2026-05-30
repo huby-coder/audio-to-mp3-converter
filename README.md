@@ -1,38 +1,30 @@
 # 🎵 Audio to MP3 Converter
 
-> Konvertiere M4A-Dateien zu MP3 – direkt im Browser, ohne Upload
+> Eine einzige HTML-Datei – M4A zu MP3 Konverter, der komplett im Browser läuft.
 
-## Demo
+![Status](https://img.shields.io/badge/status-stable-brightgreen)
+![Dateigröße](https://img.shields.io/badge/size-~50KB-blue)
+![Lizenz](https://img.shields.io/badge/license-MIT-green)
 
-[Live Demo](https://dein-username.github.io/audio-to-mp3-converter/)
+## ✨ Features
 
-## Features
-
+- 🎯 **Eine einzige HTML-Datei** – keine Installation, keine Abhängigkeiten
+- 🔒 **100% lokal** – Dateien verlassen nie deinen Computer
 - 📁 Drag & Drop oder Dateiauswahl
-- 🔒 100% lokal – Dateien verlassen nie deinen Rechner
-- 📊 Fortschrittsbalken während der Konvertierung
-- ⬇️ Download als hochwertige MP3 (128 kbps)
-- 🚀 Keine Installation nötig
+- 📊 Echtzeit-Fortschrittsanzeige
+- ⬇️ MP3 Download mit 128 kbps Qualität
+- 🚀 Funktioniert offline (nach dem ersten Laden)
 
-## Technologien
+## 🖱️ Live Demo
 
-- Web Audio API (M4A/AAC Decodierung)
-- lamejs (MP3 Encoding)
-- Vanilla HTML/CSS/JS
+👉 **[Jetzt testen – M4A zu MP3 Konverter](https://huby-coder.github.io/audio-to-mp3-converter/)** 👈
 
-## Nutzung
+Oder lokal nutzen:
+1. Lade die `index.html` herunter
+2. Doppelklick zum Öffnen im Browser
+3. M4A-Datei per Drag & Drop ablegen
+4. Auf "MP3 herunterladen" klicken
 
-1. Öffne `index.html` im Browser
-2. Ziehe eine .m4a Datei per Drag & Drop
-3. Warte auf die Konvertierung
-4. Lade die MP3 herunter
+## 📦 Projektstruktur
 
-## Browser-Kompatibilität
-
-- Chrome/Edge (empfohlen)
-- Firefox
-- Safari (getestet)
-
-## Lizenz
-
-MIT
+Nur eine Datei:
